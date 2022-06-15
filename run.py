@@ -12,10 +12,18 @@ class Run():
         self.neutron_yield = 100;
 
         # Apply cuts and store stats in dic for computing rates
-        print(self.cut_stats_mc) 
         m.branches.cut_branches("depTPCtot>0")        
-        print(self.cut_stats_mc)
- 
+        m.branches.cut_branches("depTPCtot>0 && nclus==1")        
+        m.branches.cut_branches("depTPCtot>0 && nclus==1")        
+        #m.branches.cut_branches("depTPCtot>0 && nclus==1 && nclus_elec==0 && nclus_nucl==1")        
+        #m.branches.cut_branches("depTPCtot>0 && nclus_nucl>0 && v2nclus_elec>0 ")        
+        #m.branches.cut_branches("depTPCtot>0 && nclus==1 &&")        
+
+        # Plotting
+        m.plotter.get_branches(self.tree_mc)                
+        m.plotter.energy_spectra(cuts=["depTPCtot>0","depTPCtot>0 && nclus_nucl==1 && nclus_elec==0"],nbins=200,min=0,max=12000)
+
+
     # Apply cuts and store stats in dic for computing rates
     #m.branches.cut_branches(self.branches["depTPCtot"]>0)
     #m.branches.
