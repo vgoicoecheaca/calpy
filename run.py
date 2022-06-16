@@ -1,9 +1,10 @@
-from re import L
 from manager import Manager
 m = Manager()
 class Run():
     def __init__(self,fmc,fbg=None):  
         self.tree_mc,self.cut_stats_mc  = m.branches(m.config('run',"path",'str')+fmc,"dstree") 
+        #as of now bg only in all edeps mode:
+                     
         #self.tree_bg,self.cut_stats_bg  = None if fbg==None else m.branches(m.config('run',"path",'str')+fbg,"dstree") 
         self.cut_stats_mc["nevents"]    = self.tree_mc.GetEntries()
         self.neutron_yield              = 100;
@@ -34,21 +35,28 @@ class Run():
 
         # Plotting
         m.plotter.get_branches(self.tree_mc)                
-        m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,name="ene",
+        m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="ene",
                                 cuts=["depTPCtot>0",
                                 "depTPCtot>0 && nclus_nucl==1 && nclus_elec==0 && nclus==1",
                                 "depTPCtot>0 && nclus_elec==1 && nclus==1",
                                 "depTPCtot>0 && nclus_nucl==1 && nclus_elec==0 && nclus==1 && isFV30==1"])
-        m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,name="gammas",
+        m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",
                                 cuts=["depTPCtot>0",
                                 "depTPCtot>0 && nclus_nucl==0 && nclus_elec>0",
                                 "depTPCtot>0 && nclus_nucl>0 && nclus_elec>0",
                                 "depTPCtot>0 && nclus_elec==1 && nclus==1 && isFV30==1"])
-        m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,name="lowene",
+        m.plotter.energy_spectra(nbins=70,min=0,max=200,res=True,scale=self.scaleF,name="lowene",
                          cuts=["depTPCtot>0",
                          "depTPCtot>0 && nclus_elec==1 && nclus==1",
                          "depTPCtot>0 && nclus_elec==0 && nclus==1 && isFV30==1",       
                          "depTPCtot>0 && nclus_elec==1 && nclus==1 && isFV30==1 && v2nclus==0"])       
+
+        '''
+        m.plotter.spatial_distribution(var="xy",nbins=50,min=-2.0,max=2.0,title="xy",
+                                      cuts="depTPCtot>0 && nclus_elec==1 && nclus==1 && isFV30==1")
+        m.plotter.spatial_distribution(var="xz",nbins=50,min=-2.0,max=2.0,title="xy",
+                              cuts="depTPCtot>0 && nclus_elec==1 && nclus==1 && isFV30==1")
+        '''
 
         #Print stats
         str_len = 20                                                                          # to make output uniform
@@ -61,7 +69,7 @@ class Run():
         print("//////// Rates in [Events/sec]///////// ")
         print("/////////////////////////////////////// ")
         for i, name in enumerate(self.cut_stats_mc.keys()):
-            print(name,(str_len-len(name))*" ","{:.2e}".format((self.cut_stats_mc[name]/self.cut_stats_mc["nevents"])*(1/self.scaleF)))
+            print(name,(str_len-len(name))*" ","{:.2e}".format(self.cut_stats_mc[name]*(self.neutron_yield/self.cut_stats_mc["nevents"])))
 
     # implement an option for neutron vs gamma source and what's default by each of this options
 
