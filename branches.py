@@ -9,9 +9,9 @@ class Branches():
     def __call__(self,file,tree):                   
         self.file = R.TFile(file,"read")
         self.tree = self.file.Get(tree)
-    
+
         return self.tree, self.cut_stats
-        
+
     def add_branch(self,name,func):       
         self.tree.SetAlias(name,func)
 

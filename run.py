@@ -3,8 +3,7 @@ m = Manager()
 class Run():
     def __init__(self,fmc,fbg=None):  
         self.tree_mc,self.cut_stats_mc  = m.branches(m.config('run',"path",'str')+fmc,"dstree") 
-        #as of now bg only in all edeps mode:
-                     
+        #self.bg_hist                    = m.branches.get_bg("gamma_bg_tpc.root")  #as of now bg only in all edeps mode:
         #self.tree_bg,self.cut_stats_bg  = None if fbg==None else m.branches(m.config('run',"path",'str')+fbg,"dstree") 
         self.cut_stats_mc["nevents"]    = self.tree_mc.GetEntries()
         self.neutron_yield              = 100;
@@ -35,11 +34,32 @@ class Run():
 
         # Plotting
         m.plotter.get_branches(self.tree_mc)                
-        m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="ene",
+        m.plotter.energy_spectra(nbins=200,min=0,max=12000,bg=True,res=True,scale=self.scaleF,name="enebg",
+                                cuts=["depTPCtot>0",
+                                "depTPCtot>0 && nclus_elec==1 && nclus==1"])
+
+        m.plotter.energy_spectra(nbins=100,min=0,max=200,bg=True,res=True,scale=self.scaleF,name="enelowbg",    
+                                cuts=["depTPCtot>0",
+                                "depTPCtot>0 && nclus_elec==1 && nclus==1"])
+
+
+        import sys
+        sys.exit()
+
+
+        '''Plotting: the energy_spectra function will automatically add gamma bg provided in the same directory
+                    only for the depTPCtot>0 cut and a cut containing nclus_elec==1 for single scatter gammas.
+                    Other bg statistics not implemented yet.
+                    Keep the depTPCtot as the first cut for bg addition to work (modify this eventually)'''
+        m.plotter.energy_spectra(nbins=200,min=0,max=12000,bg=False,res=True,scale=self.scaleF,name="ene",
                                 cuts=["depTPCtot>0",
                                 "depTPCtot>0 && nclus_nucl==1 && nclus_elec==0 && nclus==1",
                                 "depTPCtot>0 && nclus_elec==1 && nclus==1",
                                 "depTPCtot>0 && nclus_nucl==1 && nclus_elec==0 && nclus==1 && isFV30==1"])
+
+        import sys
+        sys.exit()
+
         m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",
                                 cuts=["depTPCtot>0",
                                 "depTPCtot>0 && nclus_nucl==0 && nclus_elec>0",
