@@ -34,18 +34,20 @@ class Run():
 
         # Plotting
         m.plotter.get_branches(self.tree_mc)                
-        m.plotter.energy_spectra(nbins=200,min=0,max=12000,bg=True,res=True,scale=self.scaleF,name="enebg",
-                                cuts=["depTPCtot>0",
-                                "depTPCtot>0 && nclus_elec==1 && nclus==1"])
-
-        m.plotter.energy_spectra(nbins=100,min=0,max=200,bg=True,res=True,scale=self.scaleF,name="enelowbg",    
-                                cuts=["depTPCtot>0",
-                                "depTPCtot>0 && nclus_elec==1 && nclus==1"])
-
-
+        #m.plotter.xy_resolution("test")        
+        #m.plotter.doke_plot()
+        m.plotter.psd()
+    
         import sys
         sys.exit()
 
+        #m.plotter.energy_spectra(nbins=200,min=0,max=12000,bg=True,res=True,scale=self.scaleF,name="enebg",
+        #                        cuts=["depTPCtot>0",
+        #                        "depTPCtot>0 && nclus_elec==1 && nclus==1"])
+
+        #m.plotter.energy_spectra(nbins=100,min=0,max=200,bg=True,res=True,scale=self.scaleF,name="enelowbg",    
+        #                        cuts=["depTPCtot>0",
+        #                        "depTPCtot>0 && nclus_elec==1 && nclus==1"])
 
         '''Plotting: the energy_spectra function will automatically add gamma bg provided in the same directory
                     only for the depTPCtot>0 cut and a cut containing nclus_elec==1 for single scatter gammas.
@@ -56,9 +58,6 @@ class Run():
                                 "depTPCtot>0 && nclus_nucl==1 && nclus_elec==0 && nclus==1",
                                 "depTPCtot>0 && nclus_elec==1 && nclus==1",
                                 "depTPCtot>0 && nclus_nucl==1 && nclus_elec==0 && nclus==1 && isFV30==1"])
-
-        import sys
-        sys.exit()
 
         m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",
                                 cuts=["depTPCtot>0",
@@ -98,8 +97,6 @@ class Run():
 
 
     # def a process to check for XY reco
-
-
 
 
 

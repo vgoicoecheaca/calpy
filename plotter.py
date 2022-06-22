@@ -1,7 +1,5 @@
-from binascii import hexlify
-from re import I
 from branches import Branches
-import matplotlib as mpl
+import numpy as np
 import ROOT as R
 
 class Plotter():
@@ -52,7 +50,6 @@ class Plotter():
                 bg_str = "enebg" if pars["max"]>300 else "lowbg"
                 if i == 0 or "nclus_elec==1" in pars["cuts"][i]:
                     #h_res[i].Add(self.h_bg[bg_str[:3]+"s"+bg_str[3:] if "nclus_elec==1" in pars["cuts"][i] else bg_str])
-                    print(h_res[i].GetNdivisions("X"),self.h_bg[bg_str[:3]+"s"+bg_str[3:] if i!=0 else bg_str].GetNdivisions("X"))
                     h_res[i].Add(self.h_bg[bg_str[:3]+"s"+bg_str[3:] if i!=0 else bg_str])
                 h_res[i].Draw("HIST" if i==0 else "HIST same") 
                 if "bg" in pars.keys() and pars["bg"]:
@@ -76,8 +73,77 @@ class Plotter():
         cs.Update()
         cs.SaveAs("plots/"+pars["title"]+".pdf")
 
+    def doke_plot(self):
+        '''S2/E vs S1/E or g2 vs g1 for different fiel configurations'''
+
     def psd(self):
-        print("hello there psd")
+        '''PSD plot: f90 vs S1,test with other file for now (ReD)''' 
+        '''Shaded region?BG?'''
+        #fd = R.TF2("f2","xygaus + xygaus(5) + xylandau(10)",0,1000,0,1); #generate fake data
+        c = R.TCanvas()
+        f = R.TF2("f","xygaus(5) + xylandau(8)",0,1000,0,1)
+        f.SetParameters(150,1231,1000,12,800, 3600,22,123,1,800)
+        fd = R.TH2F("h","xygaus(5) + xylandau(8)",100,0,1000,100,0,1)
+        fd.FillRandom("f",40000)
+        fd.Draw("COLZ")
+        g1,g2,g3 = self.neutron_psd()
+        g1.Draw("l")
+        g2.Draw("l")
+        g3.Draw("f")
+        fd.GetXaxis().SetTitle("S1 [PE]")
+        fd.GetYaxis().SetTitle("f90")
+        c.SaveAs("plots/psd.pdf") 
+      
+    def xy_resolution(self,files):
+        #R.gStyle.SetPalette(57)
+        c = R.TCanvas() 
+        hs = R.TH2F("h","",100,-200,200,100,-200,200)   
+        pos = [-100,0,100]
+        pm = 20 
+        fs = [R.TF2("g"+str(i),"gaus",pos[i]-pm,pos[i]+pm,0-pm,0+pm) for i in range(len(pos))]
+        for i,p in enumerate(pos):
+            for n in range(100000):
+                hs.Fill(np.random.normal(p, 15, 1)[0],np.random.normal(0, 15, 1)[0])
+            print(fs[i])
+            fs[i].SetContour(20)
+            hs.SetContour(20)
+            #hs.Fit("g"+str(i),"R" if i==0 else "R+")
+        #hs.Fit('gaus')
+        #hs.SetContour(10)
+        #hs.SetFillColor(45)
+        #hs.GetXaxis().SetTitle("X [cm]")
+        #hs.GetYaxis().SetTitle("Y [cm]")
+        hs.Draw("LEGO2Z")
+        c.SaveAs("plots/res.pdf")
+        #self.m.branches.get_xys(files)
+        #for i, p in enumerate(pos):
+        #compare the mc with reconstructed???
     
-    def xy_resolution(self):
-        print("Heljo there XY Res")
+    def neutron_psd(self):
+        x = [0,10,20,100,200,300,400,500,800,1000]
+        ymin = [1,0.95,0.92,0.85,0.75,0.7,0.7,0.7,0.7,0.7]
+        ymax = [1 for i in range(len(x))]
+
+        g = R.TGraph(len(x))
+        g.SetLineColor(6)
+        for i in range(len(x)):
+            g.SetPoint(i,x[i],ymin[i])
+
+        g2 = R.TGraph(len(x))
+        g2.SetLineColor(6)
+        for i in range(len(x)):
+            g2.SetPoint(i,x[i],ymax[i])
+
+        g3 = R.TGraph(100)
+        g3.SetFillStyle(3013)
+        g3.SetFillColor(6)
+        for i in range(len(x)):
+            g3.SetPoint(i,x[i],ymax[i])
+            g3.SetPoint(10+i,x[len(x)-i-1],ymin[len(x)-i-1])
+
+        l1 = R.TGraph(3)        
+        l1.SetLineColor(2)
+        l2 = R.TGraph(3)
+        l2.SetLineColor(2)
+
+        return g,g2,g3,l1,l2
