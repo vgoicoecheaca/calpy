@@ -1,4 +1,5 @@
 from branches import Branches
+from array import array
 import numpy as np
 import ROOT as R
 
@@ -73,8 +74,45 @@ class Plotter():
         cs.Update()
         cs.SaveAs("plots/"+pars["title"]+".pdf")
 
-    def doke_plot(self):
-        '''S2/E vs S1/E or g2 vs g1 for different fiel configurations'''
+    def doke_plot(self,**pars):
+        '''S2/E vs S1/E or g2 vs g1 for different fiel configurations
+            peak dependent, 
+            field dependent
+            should be scatter plot'''
+        c = R.TCanvas()
+        texs,gs = [],[]
+        for n,field in enumerate(pars["fields"]):
+            xs,ys,xs_err,ys_err = [],[],[],[]
+            # get the data from the self.m.branches  
+            # create fake data for development
+            cent,dev  = 1170, 800 
+            minf,maxf = 1170*8 - 800, 1170*8 + 800
+            s1, s2 = R.TH1F("s1","",400,minf,maxf),R.TH1F("s2","",4000,minf*20,maxf*20)
+            for i in range(100000):
+                s1.Fill(np.random.normal(cent*8,dev,1)[0])
+                s2.Fill(np.random.normal(cent*20,dev*20,1)[0]) # end of fake data 
+
+            for i,energy in enumerate(pars["energy"]): 
+                fit_s1 = self.m.aux.fit_peak_with_gaus(s1,minf,maxf)
+                fit_s2 = self.m.aux.fit_peak_with_gaus(s2,minf*20,maxf*20) # remember this is an approximation
+                c.SaveAs("test"+str(i)+".pdf")
+                print("HERE", fit_s1[1])
+                xs.append(fit_s1[1]/energy)
+                ys.append(fit_s2[1]/energy)
+                xs_err.append(fit_s1[2]/energy)
+                ys_err.append(fit_s2[2]/energy)
+                texs.append(R.TLatex(xs[i]*1.1,ys[i]*1.1,str(field)+" kV/cm"))
+                texs[n+i].SetTextColor(n+1)
+                texs[n+i].Draw()
+            print(xs)
+            gs.append(R.TGraphErrors(len(xs),array("f",xs),array("f",ys),array("f",xs_err),array("f",ys_err)))
+            gs[n].GetYaxis().SetRangeUser(0,100)
+            gs[n].GetXaxis().SetRangeUser(0,10)
+            gs[n].SetMarkerColor(n+1)
+            gs[n].GetXaxis().SetTitle("g1 [photon/keV]")
+            gs[n].GetYaxis().SetTitle("g2 [PE/kev]")
+            gs[n].Draw("PA")
+        c.SaveAs("plots/doke.pdf")
 
     def psd(self):
         '''PSD plot: f90 vs S1,test with other file for now (ReD)''' 
@@ -95,7 +133,6 @@ class Plotter():
         c.SaveAs("plots/psd.pdf") 
       
     def xy_resolution(self,files):
-        #R.gStyle.SetPalette(57)
         c = R.TCanvas() 
         hs = R.TH2F("h","",100,-200,200,100,-200,200)   
         pos = [-100,0,100]
@@ -141,9 +178,4 @@ class Plotter():
             g3.SetPoint(i,x[i],ymax[i])
             g3.SetPoint(10+i,x[len(x)-i-1],ymin[len(x)-i-1])
 
-        l1 = R.TGraph(3)        
-        l1.SetLineColor(2)
-        l2 = R.TGraph(3)
-        l2.SetLineColor(2)
-
-        return g,g2,g3,l1,l2
+        return g,g2,g3

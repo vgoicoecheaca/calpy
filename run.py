@@ -35,8 +35,8 @@ class Run():
         # Plotting
         m.plotter.get_branches(self.tree_mc)                
         #m.plotter.xy_resolution("test")        
-        #m.plotter.doke_plot()
-        m.plotter.psd()
+        m.plotter.doke_plot(fields=[200,150,100],energy=[1117],source=["co60"],min=[1170*8 - 1000],max=[1170*8+1000])
+        #m.plotter.psd()
     
         import sys
         sys.exit()
