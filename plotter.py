@@ -63,19 +63,18 @@ class Plotter():
 
     def spatial_distribution(self,**pars):   
         cs = R.TCanvas()
-        R.gStyle.SetPadRightMargin(0.16)
         cs.SetLogz()
         h  =  R.TH2F("h","",pars["nbins"],pars["min"],pars["max"],pars["nbins"],pars["min"],pars["max"])
         var  = "cl_y:cl_x" if pars["var"] == "xy" else "cl_z:cl_x"
-        cs.SetFillColor(10)
         bg_str = pars["var"]+"sbg" if "nclus" in pars["cuts"] else pars["var"]+"bg"
         h.GetXaxis().SetTitle("X [cm]")
         h.GetYaxis().SetTitle("Y [cm]")
         h.GetZaxis().SetTitle("Rate [Events/sec]")
         if var =="xz":
             h.GetYaxis().SetTitle("Z [cm]")
-            h.GetYaxis().SetRangeUser(-185,185)
+            #h.GetYaxis().SetRangeUser(-185,185)
         self.tree.Draw(var+">>h","depTPCtot>0","COLZ")
+        R.gStyle.SetPadRightMargin(0.16)
         h.Scale(pars["scale"]) 
         #h.Add(self.h_bg[bg_str])
         cs.Update()
@@ -139,26 +138,21 @@ class Plotter():
         fd.GetYaxis().SetTitle("f90")
         c.SaveAs("plots/psd.pdf") 
       
-    def xy_resolution(self):
+    def xy_resolution(self,**pars):
         c = R.TCanvas() 
         hs = R.TH2F("h","",100,-200,200,100,-200,200)   
         pos = self.m.config("xy","pos","str").split()
+        h = R.TH2F("h","",100,-200,200,100,-200,200)
         pos = [int(p) for p in pos]
         pm = 20 
-        fs = [R.TF2("g"+str(i),"gaus",pos[i]-pm,pos[i]+pm,0-pm,0+pm) for i in range(len(pos))]
-        for i,p in enumerate(pos):
-            for n in range(100000):
-                hs.Fill(np.random.normal(p, 15, 1)[0],np.random.normal(0, 15, 1)[0])
-            print(fs[i])
-            fs[i].SetContour(20)
-            hs.SetContour(20)
-            #hs.Fit("g"+str(i),"R" if i==0 else "R+")
-        #hs.Fit('gaus')
-        #hs.SetContour(10)
-        #hs.SetFillColor(45)
-        #hs.GetXaxis().SetTitle("X [cm]")
-        #hs.GetYaxis().SetTitle("Y [cm]")
-        hs.Draw("LEGO2Z")
+        #fs = [R.TF2("g"+str(i),"gaus",pos[i]-pm,pos[i]+pm,0-pm,0+pm) for i in range(len(pos))]
+        if "show" in pars.keys():
+            h.SetContour(10)
+            h.SetFillColor(45)
+            hs.GetXaxis().SetTitle("X [cm]")
+            hs.GetYaxis().SetTitle("Y [cm]")
+            self.tree.Draw("cl_y:cl_x>>h","depTPCtot>0","LEGO2Z")
+        #hs.Draw("LEGO2Z")
         c.SaveAs("plots/res.pdf")
         #self.m.branches.get_xys(files)
         #for i, p in enumerate(pos):
