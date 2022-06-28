@@ -1,3 +1,4 @@
+from re import I
 from branches import Branches
 from array import array
 import numpy as np
@@ -6,7 +7,7 @@ import ROOT as R
 class Plotter():
     def __init__(self,manager):
         self.m = manager
-        self.fbg  = R.TFile(self.m.config('run','bg','str'))
+        self.fbg  = R.TFile(self.m.config('ene','bg','str'))
         self.h_bg      = {}
         self.bg_labels = ["enebg","enesbg","lowbg","lowsbg","xybg","xysbg","xzbg","xzsbg"]
         for i,label in enumerate(self.bg_labels):
@@ -61,16 +62,22 @@ class Plotter():
             cr.SaveAs("plots/"+pars["name"]+"_res.pdf")
 
     def spatial_distribution(self,**pars):   
-        cs = R.TCanvas("cs","cs",0,0,700,550)
-        h  =  R.TH2F("h",pars["nbins"],pars["min"],pars["max"],pars["nbins"],pars["min"],pars["max"])
-        var  = "dep_y/100:dep_x/100" if pars["var"] == "xy" else "dep_z/100:dep_x/100"
-        cs.SetLogy()
+        cs = R.TCanvas()
+        R.gStyle.SetPadRightMargin(0.16)
+        cs.SetLogz()
+        h  =  R.TH2F("h","",pars["nbins"],pars["min"],pars["max"],pars["nbins"],pars["min"],pars["max"])
+        var  = "cl_y:cl_x" if pars["var"] == "xy" else "cl_z:cl_x"
         cs.SetFillColor(10)
         bg_str = pars["var"]+"sbg" if "nclus" in pars["cuts"] else pars["var"]+"bg"
-        h.Add(self.h_bg[bg_str])
-        self.tree.Draw(var,pars["cuts"],"COLZ")
+        h.GetXaxis().SetTitle("X [cm]")
+        h.GetYaxis().SetTitle("Y [cm]")
+        h.GetZaxis().SetTitle("Rate [Events/sec]")
         if var =="xz":
-            h.GetYaxis().SetRangeUser(-1.85,1.85)
+            h.GetYaxis().SetTitle("Z [cm]")
+            h.GetYaxis().SetRangeUser(-185,185)
+        self.tree.Draw(var+">>h","depTPCtot>0","COLZ")
+        h.Scale(pars["scale"]) 
+        #h.Add(self.h_bg[bg_str])
         cs.Update()
         cs.SaveAs("plots/"+pars["title"]+".pdf")
 
@@ -132,10 +139,11 @@ class Plotter():
         fd.GetYaxis().SetTitle("f90")
         c.SaveAs("plots/psd.pdf") 
       
-    def xy_resolution(self,files):
+    def xy_resolution(self):
         c = R.TCanvas() 
         hs = R.TH2F("h","",100,-200,200,100,-200,200)   
-        pos = [-100,0,100]
+        pos = self.m.config("xy","pos","str").split()
+        pos = [int(p) for p in pos]
         pm = 20 
         fs = [R.TF2("g"+str(i),"gaus",pos[i]-pm,pos[i]+pm,0-pm,0+pm) for i in range(len(pos))]
         for i,p in enumerate(pos):
