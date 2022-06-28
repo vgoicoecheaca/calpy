@@ -49,34 +49,40 @@ class Plotter():
                 h_res[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
                 h_res[i].GetYaxis().SetTitle("Rate [s^{-1}]")
                 h_res[i].GetXaxis().SetTitle("Energy [keV]")
-                bg_str = "enebg" if pars["max"]>300 else "lowbg"
-                if i == 0 or "nclus_elec==1" in pars["cuts"][i]:
-                    #h_res[i].Add(self.h_bg[bg_str[:3]+"s"+bg_str[3:] if "nclus_elec==1" in pars["cuts"][i] else bg_str])
-                    h_res[i].Add(self.h_bg[bg_str[:3]+"s"+bg_str[3:] if i!=0 else bg_str])
-                h_res[i].Draw("HIST" if i==0 else "HIST same") 
                 if "bg" in pars.keys() and pars["bg"]:
-                    self.h_bg[bg_str].SetLineColor(2)
-                    self.h_bg[bg_str].Draw("HIST same") 
+                    h_res[i], bg_str  = self.add_bg(h_res[i],pars["cuts"][i],low=False if pars["max"]>300 else True) 
+                    #h_res[i].Add(self.h_bg[bg_str]) 
+                    if "range" in pars.keys():
+                        self.h_bg[bg_str].SetAxisRange(pars["range"][1],pars["range"][0],"Y")
+                    self.h_bg[bg_str].Draw("HIST same")
+                if "range" in pars.keys():
+                    h_res[i].SetAxisRange(pars["range"][1],pars["range"][0],"Y")
+                h_res[i].Draw("HIST same") 
             cr.SetLogy()
             cr.Update()
             cr.SaveAs("plots/"+pars["name"]+"_res.pdf")
 
     def spatial_distribution(self,**pars):   
         cs = R.TCanvas()
-        cs.SetLogz()
-        h  =  R.TH2F("h","",pars["nbins"],pars["min"],pars["max"],pars["nbins"],pars["min"],pars["max"])
-        var  = "cl_y:cl_x" if pars["var"] == "xy" else "cl_z:cl_x"
+        #cs.SetLogz()
+        h  =  R.TH2F("h","",pars["nbins"],pars["min"],pars["max"],pars["nbins"],pars["min"],pars["max"]) 
+        var  = "cl_y:cl_x" if pars["var"] == "xy" else "cl_z:cl_x" 
         bg_str = pars["var"]+"sbg" if "nclus" in pars["cuts"] else pars["var"]+"bg"
         h.GetXaxis().SetTitle("X [cm]")
         h.GetYaxis().SetTitle("Y [cm]")
         h.GetZaxis().SetTitle("Rate [Events/sec]")
-        if var =="xz":
+        if pars["var"] =="xz":
             h.GetYaxis().SetTitle("Z [cm]")
-            #h.GetYaxis().SetRangeUser(-185,185)
-        self.tree.Draw(var+">>h","depTPCtot>0","COLZ")
+            h.GetYaxis().SetRangeUser(-185,185)
+        self.tree.Draw(var+">>h",pars["cuts"],"COLZ")
         R.gStyle.SetPadRightMargin(0.16)
-        h.Scale(pars["scale"]) 
-        #h.Add(self.h_bg[bg_str])
+        h.Scale(50/h.Integral() if pars["s"] == "n" else pars["scale"] )                                            #cheap fix, come back to this 
+        if "bg" in pars.keys() and pars["bg"]:
+            bg_str = pars["var"]+"sbg" if "nclus_elec==1" in pars["cuts"] else pars["var"]+"bg"
+            integral = self.h_bg[bg_str].Integral()
+            self.h_bg[bg_str].Scale( (43/integral) if "s" in bg_str else 84/integral)                                                   # there was a bug, total bg rate should be 84Hz for all deposits and 43 for single scatters, roughly
+            h.Add(self.h_bg[bg_str])
+        print("After adding", h.Integral())
         cs.Update()
         cs.SaveAs("plots/"+pars["title"]+".pdf")
 
@@ -181,3 +187,13 @@ class Plotter():
             g3.SetPoint(10+i,x[len(x)-i-1],ymin[len(x)-i-1])
 
         return g,g2,g3
+
+
+    def add_bg(self,h,cut,low=False):
+        bg_str = "lowbg" if low else "enebg"
+        h.Add(self.h_bg[bg_str[:3]+"s"+bg_str[3:] if "nclus_elec==1" in cut else bg_str])
+        self.h_bg[bg_str].SetLineColor(24 if "nclus_elec==1" in cut else 20)
+        self.h_bg[bg_str].SetLineStyle(0)
+        self.h_bg[bg_str].SetFillColorAlpha(24 if "nclus_elec==1" in cut else 20,0.1)
+        self.h_bg[bg_str].GetYaxis().SetTitle("Rate [Events/sec]")
+        return h , bg_str
