@@ -18,6 +18,7 @@ class Run():
                 "depTPCtot>0 && nclus_nucl>0 && nclus_elec>0":"NR and ER",        
                 "depTPCtot>0 && nclus_nucl>0 && nclus_elec>0 && isFV30==1":"NR and ER FV",
                 "depTPCtot>0 && nclus_nucl==0 && nclus_elec>0":"ER",        
+                "depTPCtot>0 && nclus==0 && nclus_elec>1":"ER SS",        
                 "depTPCtot>0 && nclus==1 && nclus_nucl==1 && nclus_elec==0 && isFV30==1":"NR SS in FV",        
                 "depTPCtot>0 && nclus==1 && nclus_nucl==1 && nclus_elec==0 && isFV30==1 && v2nclus==0":"Pure NR SS in FV",        
                 "depTPCtot>0 && nclus==1 && nclus_nucl==1 && nclus_elec==0 && v2nclus_elec>0 && depVeto2tot>4200 && depVeto2tot<4500 ":"NR SS in FV (AmBe)",        
@@ -33,8 +34,10 @@ class Run():
         for label,cut in self.cut_labels.items():
             m.branches.cut_branches(cut,label)
 
+
         # Plotting
         m.plotter.get_branches(self.tree_mc)                
+
         self.cut_plots = ["depTPCtot>0",
                         "depTPCtot>0 && nclus_nucl==1 && nclus_elec==0 && nclus==1",
                         "depTPCtot>0 && nclus_elec==1 && nclus==1",
@@ -43,8 +46,9 @@ class Run():
                         "depTPCtot>0 && nclus_nucl==0 && nclus_elec>0",
                         "depTPCtot>0 && nclus_nucl>0 && nclus_elec>0",
                         "depTPCtot>0 && nclus_elec==1 && nclus==1 && isFV30==1"]
+
         if self.source_type == "g":
-            self.cut_plots = ["depTPCtot>0", "depTPCtot>0 && nclus_elec==1"]
+            self.cut_plots = ["depTPCtot>0", "depTPCtot>0 && nclus_elec==1 && nclus==1"]
 
         #m.plotter.doke_plot(fields=[200,150,100],energy=[1117],source=["co60"],min=[1170*8 - 1000],max=[1170*8+1000])
     
@@ -53,27 +57,37 @@ class Run():
                     Other bg statistics not implemented yet.
                     Keep the depTPCtot as the first cut for bg addition to work (modify this eventually)'''
         #spectrum before bg
-        #m.plotter.energy_spectra(nbins=200,min=0,max=12000 if self.source_type=="n" else 2500,res=True,scale=self.scaleF,name="ene",   cuts=self.cut_plots)
+        #m.plotter.energy_spectra(nbins=200,min=0,max=12000 if self.source_type=="n" else 3000,res=True,scale=self.scaleF,name="ene",   cuts=self.cut_plots)
         #m.plotter.energy_spectra(nbins=100,min=0,max=200,                                     res=True,scale=self.scaleF,name="lowene",cuts=self.cut_plots,range=[1,2e-4])
 
         #if self.source_type == "n":
         #    m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas)
 
         ## spectrum after bg 
-        #m.plotter.energy_spectra(nbins=200,min=0,max=12000                                   ,bg=True,res=True,scale=self.scaleF,name="enebg",   cuts=["depTPCtot>1","depTPCtot>1 && nclus_elec==1 && nclus==1"])
-        #m.plotter.energy_spectra(nbins=100,min=0,max=200,                                     bg=True,res=True,scale=self.scaleF,name="lowenebg",cuts=["depTPCtot>1","depTPCtot>1 && nclus_elec==1 && nclus==1"])
+        #m.plotter.energy_spectra(nbins=200,min=0,max=3000,bg=True,res=True,scale=self.scaleF,name="enebg",   cuts=["depTPCtot>0"])
+        #m.plotter.energy_spectra(nbins=100,min=0,max=200, bg=True,res=True,scale=self.scaleF,name="lowenebg",cuts=["depTPCtot>0"])
 
         #if self.source_type == "n":
         #    m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas)
 
-        # before bg
-        m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = "g",title="xy",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec>0 && nclus_nucl==0")
-        m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = "g",title="xz",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec>0 && nclus_nucl==0")
-        m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = "g",bg=True,title="xybg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec>0 && nclus_nucl==0")
-        m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = "g",bg=True,title="xzbg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec>0 && nclus_nucl==0")
+        ## before bg
+        #m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,title="xy",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
+        #m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = self.source_type,title="xz",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
+        ##with  
+        #m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,bg=True,title="xybg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
+        #m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = self.source_type,bg=True,title="xzbg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
 
-        # def a process to check for XY reco
-        # m.plotter.xy_resolution()        
+        ## def a process to check for XY reco
+        if self.source_type == "g":
+            m.plotter.xy_resolution()        
+
+        # check PSD for neutron sources 
+        if self.source_type=="n":
+            m.plotter.psd()
+
+        # check for LY uniformities given current optical model (DS50 based) for distributed sources (Kr83m, Rn220)
+        if self.source_type == "d":
+            m.plotter.ly_map(bins=50,peak_ene=41,lymin=0,lymax=500)
 
         #Print stats
         str_len = 20                                                                          # to make output uniform
@@ -92,8 +106,6 @@ class Run():
 
     # def a proccess to check for the PSD 
     #m.plotter.psd()
-
-
 
 ##### Run ####
 #if one file

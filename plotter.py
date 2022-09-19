@@ -3,6 +3,7 @@ from branches import Branches
 from array import array
 import numpy as np
 import ROOT as R
+from ROOT.TMath import Gaus
 
 class Plotter():
     def __init__(self,manager):
@@ -51,7 +52,6 @@ class Plotter():
                 h_res[i].GetXaxis().SetTitle("Energy [keV]")
                 if "bg" in pars.keys() and pars["bg"]:
                     h_res[i], bg_str  = self.add_bg(h_res[i],pars["cuts"][i],low=False if pars["max"]>300 else True) 
-                    #h_res[i].Add(self.h_bg[bg_str]) 
                     if "range" in pars.keys():
                         self.h_bg[bg_str].SetAxisRange(pars["range"][1],pars["range"][0],"Y")
                     self.h_bg[bg_str].Draw("HIST same")
@@ -76,13 +76,12 @@ class Plotter():
             h.GetYaxis().SetRangeUser(-185,185)
         self.tree.Draw(var+">>h",pars["cuts"],"COLZ")
         R.gStyle.SetPadRightMargin(0.16)
-        h.Scale(50/h.Integral() if pars["s"] == "n" else pars["scale"] )                                            #cheap fix, come back to this 
+        h.Scale(50/h.Integral() if pars["s"] == "n" else pars["scale"])                                            #cheap fix, come back to this 
         if "bg" in pars.keys() and pars["bg"]:
             bg_str = pars["var"]+"sbg" if "nclus_elec==1" in pars["cuts"] else pars["var"]+"bg"
             integral = self.h_bg[bg_str].Integral()
             self.h_bg[bg_str].Scale( (43/integral) if "s" in bg_str else 84/integral)                                                   # there was a bug, total bg rate should be 84Hz for all deposits and 43 for single scatters, roughly
             h.Add(self.h_bg[bg_str])
-        print("After adding", h.Integral())
         cs.Update()
         cs.SaveAs("plots/"+pars["title"]+".pdf")
 
@@ -116,7 +115,6 @@ class Plotter():
                 texs.append(R.TLatex(xs[i]*1.1,ys[i]*1.1,str(field)+" kV/cm"))
                 texs[n+i].SetTextColor(n+1)
                 texs[n+i].Draw()
-            print(xs)
             gs.append(R.TGraphErrors(len(xs),array("f",xs),array("f",ys),array("f",xs_err),array("f",ys_err)))
             gs[n].GetYaxis().SetRangeUser(0,100)
             gs[n].GetXaxis().SetRangeUser(0,10)
@@ -145,25 +143,62 @@ class Plotter():
         c.SaveAs("plots/psd.pdf") 
       
     def xy_resolution(self,**pars):
+        '''something with fraction of events? -> time for n events in region, gauss?
+        relate this to how many channels will be calibrated?
+         '''
         c = R.TCanvas() 
         hs = R.TH2F("h","",100,-200,200,100,-200,200)   
         pos = self.m.config("xy","pos","str").split()
-        h = R.TH2F("h","",100,-200,200,100,-200,200)
         pos = [int(p) for p in pos]
         pm = 20 
-        #fs = [R.TF2("g"+str(i),"gaus",pos[i]-pm,pos[i]+pm,0-pm,0+pm) for i in range(len(pos))]
-        if "show" in pars.keys():
-            h.SetContour(10)
-            h.SetFillColor(45)
-            hs.GetXaxis().SetTitle("X [cm]")
-            hs.GetYaxis().SetTitle("Y [cm]")
-            self.tree.Draw("cl_y:cl_x>>h","depTPCtot>0","LEGO2Z")
-        #hs.Draw("LEGO2Z")
+
+        f2 = R.TF2("f2","[0]*TMath::Gaus(x,[1],[2])*TMath::Gaus(y,[3],[4])",-150,-50,-50,50)
+        f2.SetParameters(1,-100,50,-100,50)
+        cutg = R.TCutG("cutg",4)
+        cutg.SetPoint(0,-150,-50)
+        cutg.SetPoint(1,-150,50)
+        cutg.SetPoint(2,-50,50)
+        cutg.SetPoint(3,-50,-50)
+        #cutg.SetPoint(4,)
+        hs.SetContour(10)
+        hs.SetFillColor(45)
+        hs.GetXaxis().SetTitle("X [cm]")
+        hs.GetYaxis().SetTitle("Y [cm]")
+        f2.SetFillColor(32)
+        f2.SetNpx(80)
+        f2.SetNpy(80)
+        self.tree.Draw("cl_y:cl_x>>h","depTPCtot>0","LEGO2")
+        hs.Fit(f2)
+        #f2.Draw("same surf")
         c.SaveAs("plots/res.pdf")
+
         #self.m.branches.get_xys(files)
         #for i, p in enumerate(pos):
         #compare the mc with reconstructed???
-    
+
+    def ly_map(self,**pars):
+        hp   = R.TProfile("hp","",pars["bins"],-180,180,pars["lymin"],pars["lymax"]) 
+        hmap = R.TH2F("hmap","",pars["bins"],-200,200,pars["bins"],-200,200)
+        c = R.TCanvas()
+        for entry in self.tree:
+            for x,y,z in zip(entry.cl_x,entry.cl_y,entry.cl_z):
+                hmap.Fill(x,y,entry.npe/pars["peak_ene"])
+                hp.Fill(z,entry.npe/pars["peak_ene"])                                        # when I wrote this killS2 enabled in the simulation
+        hmap.GetXaxis().SetTitle("X [cm]")
+        hmap.GetYaxis().SetTitle("Y [cm]")
+        hmap.GetZaxis().SetTitle("LY [PE/keV]")
+        hmap.GetZaxis().SetRangeUser(pars["lymin"],pars["lymax"])
+        c.SetRightMargin(0.13)
+        hmap.Draw("COLZ")
+        c.SaveAs("plots/lymap.pdf") 
+        c2 = R.TCanvas()  
+        c2.cd()
+        hp.GetXaxis().SetTitle("Z [cm]")
+        hp.GetYaxis().SetTitle("LY [PE/keV]")
+        hp.Draw("PE")
+        #hp.GetYaxis().SetRangeUser(0,500)
+        c2.SaveAs("plots/lyz.pdf")
+
     def neutron_psd(self):
         x = [0,10,20,100,200,300,400,500,800,1000]
         ymin = [1,0.95,0.92,0.85,0.75,0.7,0.7,0.7,0.7,0.7]
@@ -191,9 +226,12 @@ class Plotter():
 
     def add_bg(self,h,cut,low=False):
         bg_str = "lowbg" if low else "enebg"
-        h.Add(self.h_bg[bg_str[:3]+"s"+bg_str[3:] if "nclus_elec==1" in cut else bg_str])
-        self.h_bg[bg_str].SetLineColor(24 if "nclus_elec==1" in cut else 20)
+        bg_str = bg_str[:3]+"s"+bg_str[3:] if "nclus_elec==1" in cut else bg_str 
+        print("Rate of source, cut",cut,":",h.Integral(), "events/sec")
+        h.Add(self.h_bg[bg_str])
+        print("Rate of source with BG, cut",cut,":",h.Integral(), "events/sec")
+        self.h_bg[bg_str].SetLineColor(24 if "s" in bg_str else 20)
         self.h_bg[bg_str].SetLineStyle(0)
-        self.h_bg[bg_str].SetFillColorAlpha(24 if "nclus_elec==1" in cut else 20,0.1)
+        self.h_bg[bg_str].SetFillColorAlpha(24 if "s" in bg_str else 20,0.3)
         self.h_bg[bg_str].GetYaxis().SetTitle("Rate [Events/sec]")
         return h , bg_str
