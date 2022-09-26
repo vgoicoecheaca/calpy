@@ -1,4 +1,3 @@
-from re import I
 from branches import Branches
 from array import array
 import numpy as np
@@ -14,13 +13,20 @@ class Plotter():
         for i,label in enumerate(self.bg_labels):
             self.h_bg[label] = self.fbg.Get(label)
 
+        print("/////////// LABELS //////////")
+        print("Black      --> All Deposits Source + BG")
+        print("Red        --> Single Scatters Source + Bg")
+        print("Dark Gray  --> Single Scatters BG")
+        print("Light Gray --> BG")
+
+
     def get_branches(self,branches): 
         self.tree = branches
 
-    def apply_energy_res(self,hs,bins,min,max):
+    def apply_energy_res(self,hs,bins,min,max,label):
         f1_smear   = R.TF1("f1_smear",  "gaus");
         f1_res     = R.TF1("f1_res",   "0.0073 + 0.418/sqrt(x)", min, max);
-        h_res      = [R.TH1F("h"+str(i)+"res","",bins,min,max) for i in range(len(hs))]
+        h_res      = [R.TH1F(label+str(i),"",bins,min,max) for i in range(len(hs))] 
         for i in range(len(h_res)):
             h_res[i].SetLineColor(1+i)
             h_res[i].SetLineWidth(2)
@@ -35,29 +41,43 @@ class Plotter():
 
     def energy_spectra(self,**pars):
         c   = R.TCanvas("c", "c", 0, 0, 700, 500)
-        hs  = [R.TH1F("h"+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))]
+        hs          = [R.TH1F("hs"+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))]
+        bg          = [R.TH1F("bg"+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # only bg
+        hs_bg       = [R.TH1F("hbg"+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # source and bg
         for i in range(len(pars["cuts"])):
             hs[i].SetLineColor(i+1)
             hs[i].SetLineWidth(2)  
-            self.tree.Draw("depTPCtot>>"+"h"+str(i),pars["cuts"][i],"hist" if i==0 else "hist same") 
+            self.tree.Draw("depTPCtot>>"+"hs"+str(i),pars["cuts"][i],"hist" if i==0 else "hist same") 
+            if "bg" in pars.keys() and pars["bg"]: 
+                #needs to be normalized before adding otherwise scales don't match... 
+                hs[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
+                hs_bg[i], bg[i] = self.add_bg(hs[i],pars["cuts"][i],low=False if pars["max"]>300 else True) 
+                hs_bg[i].SetLineColor(i+1)
+                hs_bg[i].SetLineWidth(2)  
+                hs_bg[i].Draw("HIST same") # draw source w/ bg
+                bg[i].Draw("HIST same")    # draw only bg
+
         c.SetLogy()
         c.Update()
         c.SaveAs("plots/"+pars["name"]+".pdf")
         if "res" in pars.keys() and pars["res"]:
-            cr   = R.TCanvas("cr", "cr", 0, 0, 700, 500)
-            h_res = self.apply_energy_res(hs,pars["nbins"],pars["min"],pars["max"])  
+            cr    = R.TCanvas("cr", "cr", 0, 0, 700, 500)
+            for b in bg: b.Scale(1/pars["scale"])
+            for b in hs_bg: b.Scale(1/pars["scale"])        
+            h_bg_res = self.apply_energy_res(hs_bg if "bg" in pars.keys() and pars["bg"] else hs, pars["nbins"],pars["min"],pars["max"],"h_bg_res")   # ennergy resolution to source w/ bg
+            bg_res = self.apply_energy_res(bg, pars["nbins"],pars["min"],pars["max"],"bg_res")                                                  # energy resolution to bg
             for i in range(len(pars["cuts"])):
-                h_res[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
-                h_res[i].GetYaxis().SetTitle("Rate [s^{-1}]")
-                h_res[i].GetXaxis().SetTitle("Energy [keV]")
-                if "bg" in pars.keys() and pars["bg"]:
-                    h_res[i], bg_str  = self.add_bg(h_res[i],pars["cuts"][i],low=False if pars["max"]>300 else True) 
-                    if "range" in pars.keys():
-                        self.h_bg[bg_str].SetAxisRange(pars["range"][1],pars["range"][0],"Y")
-                    self.h_bg[bg_str].Draw("HIST same")
+                h_bg_res[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
+                bg_res[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
+                h_bg_res[i].GetYaxis().SetTitle("Rate [s^{-1}]")
+                h_bg_res[i].GetXaxis().SetTitle("Energy [keV]")
                 if "range" in pars.keys():
-                    h_res[i].SetAxisRange(pars["range"][1],pars["range"][0],"Y")
-                h_res[i].Draw("HIST same") 
+                    h_bg_res[i].SetAxisRange(pars["range"][1],pars["range"][0],"Y")
+                h_bg_res[i].Draw("HIST same") 
+                bg_res[i].SetLineColor(24 if "s" in pars["cuts"][i] else 20)
+                bg_res[i].SetLineStyle(0)
+                bg_res[i].SetFillColorAlpha(24 if "s" in pars["cuts"][i] else 20,0.3)
+                bg_res[i].Draw("HIST same")
             cr.SetLogy()
             cr.Update()
             cr.SaveAs("plots/"+pars["name"]+"_res.pdf")
@@ -199,29 +219,26 @@ class Plotter():
         #hp.GetYaxis().SetRangeUser(0,500)
         c2.SaveAs("plots/lyz.pdf")
 
-    def neutron_psd(self):
-        x = [0,10,20,100,200,300,400,500,800,1000]
-        ymin = [1,0.95,0.92,0.85,0.75,0.7,0.7,0.7,0.7,0.7]
-        ymax = [1 for i in range(len(x))]
+    #def neutron_psd(self):
+    #    x = [0,10,20,100,200,300,400,500,800,1000]
+    #    ymin = [1,0.95,0.92,0.85,0.75,0.7,0.7,0.7,0.7,0.7]
+    #    ymax = [1 for i in range(len(x))]
+    #    g = R.TGraph(len(x))
+    #    g.SetLineColor(6)
+    #    for i in range(len(x)):
+    #        g.SetPoint(i,x[i],ymin[i])
+    #    g2 = R.TGraph(len(x))
+    #    g2.SetLineColor(6
+    #    for i in range(len(x)):
+    #        g2.SetPoint(i,x[i],ymax[i])
+    #    g3 = R.TGraph(100)
+    #    g3.SetFillStyle(3013)
+    #    g3.SetFillColor(6)
+    #    for i in range(len(x)):
+    #        g3.SetPoint(i,x[i],ymax[i])
+    #        g3.SetPoint(10+i,x[len(x)-i-1],ymin[len(x)-i-1])
 
-        g = R.TGraph(len(x))
-        g.SetLineColor(6)
-        for i in range(len(x)):
-            g.SetPoint(i,x[i],ymin[i])
-
-        g2 = R.TGraph(len(x))
-        g2.SetLineColor(6)
-        for i in range(len(x)):
-            g2.SetPoint(i,x[i],ymax[i])
-
-        g3 = R.TGraph(100)
-        g3.SetFillStyle(3013)
-        g3.SetFillColor(6)
-        for i in range(len(x)):
-            g3.SetPoint(i,x[i],ymax[i])
-            g3.SetPoint(10+i,x[len(x)-i-1],ymin[len(x)-i-1])
-
-        return g,g2,g3
+    #    return g,g2,g3
 
 
     def add_bg(self,h,cut,low=False):
@@ -234,4 +251,4 @@ class Plotter():
         self.h_bg[bg_str].SetLineStyle(0)
         self.h_bg[bg_str].SetFillColorAlpha(24 if "s" in bg_str else 20,0.3)
         self.h_bg[bg_str].GetYaxis().SetTitle("Rate [Events/sec]")
-        return h , bg_str
+        return h, self.h_bg[bg_str] 

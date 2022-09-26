@@ -57,25 +57,26 @@ class Run():
                     Other bg statistics not implemented yet.
                     Keep the depTPCtot as the first cut for bg addition to work (modify this eventually)'''
         #spectrum before bg
-        #m.plotter.energy_spectra(nbins=200,min=0,max=12000 if self.source_type=="n" else 3000,res=True,scale=self.scaleF,name="ene",   cuts=self.cut_plots)
-        #m.plotter.energy_spectra(nbins=100,min=0,max=200,                                     res=True,scale=self.scaleF,name="lowene",cuts=self.cut_plots,range=[1,2e-4])
+        m.plotter.energy_spectra(nbins=200,min=0,max=12000 if self.source_type=="n" else 3000,res=True,scale=self.scaleF,name="ene",   cuts=self.cut_plots)
+        m.plotter.energy_spectra(nbins=100,min=0,max=200,                                     res=True,scale=self.scaleF,name="lowene",cuts=self.cut_plots,range=[1,2e-4])
 
-        #if self.source_type == "n":
-        #    m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas)
+        if self.source_type == "n":
+            m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas)
 
-        ## spectrum after bg 
-        #m.plotter.energy_spectra(nbins=200,min=0,max=3000,bg=True,res=True,scale=self.scaleF,name="enebg",   cuts=["depTPCtot>0"])
-        #m.plotter.energy_spectra(nbins=100,min=0,max=200, bg=True,res=True,scale=self.scaleF,name="lowenebg",cuts=["depTPCtot>0"])
+        # spectrum after bg 
+        m.plotter.energy_spectra(nbins=200,min=0,max=3000,bg=True,res=True,scale=self.scaleF,name="enebg",   cuts=["depTPCtot>0","depTPCtot>0 && nclus_elec==1 && nclus==1"],range=[10,2e-4])
+        m.plotter.energy_spectra(nbins=100,min=0,max=200, bg=True,res=True,scale=self.scaleF,name="lowenebg",cuts=["depTPCtot>0","depTPCtot>0 && nclus_elec==1 && nclus==1"],range=[10,2e-4]) 
 
-        #if self.source_type == "n":
-        #    m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas)
+        if self.source_type == "n":
+            m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas)
 
-        ## before bg
-        #m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,title="xy",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
-        #m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = self.source_type,title="xz",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
-        ##with  
-        #m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,bg=True,title="xybg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
-        #m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = self.source_type,bg=True,title="xzbg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
+        exit()
+        # before bg
+        m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,title="xy",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
+        m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = self.source_type,title="xz",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
+        #with  
+        m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,bg=True,title="xybg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
+        m.plotter.spatial_distribution(var="xz",nbins=100,min=-200,max=200,s = self.source_type,bg=True,title="xzbg",scale=self.scaleF, cuts="depTPCtot>0 && nclus_elec==1 && nclus_nucl==0")
 
         ## def a process to check for XY reco
         if self.source_type == "g":
