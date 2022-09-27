@@ -10,18 +10,45 @@ class Plotter():
         self.fbg  = R.TFile(self.m.config('ene','bg','str'))
         self.h_bg      = {}
         self.bg_labels = ["enebg","enesbg","lowbg","lowsbg","xybg","xysbg","xzbg","xzsbg"]
-        for i,label in enumerate(self.bg_labels):
-            self.h_bg[label] = self.fbg.Get(label)
 
         print("/////////// LABELS //////////")
         print("Black      --> All Deposits Source + BG")
         print("Red        --> Single Scatters Source + Bg")
         print("Dark Gray  --> Single Scatters BG")
         print("Light Gray --> BG")
-
+    
+    def get_bg(self):
+        for i,label in enumerate(self.bg_labels):
+            if label in self.h_bg.keys():
+                self.h_bg[label].Clear()
+            self.h_bg[label] = self.fbg.Get(label)
 
     def get_branches(self,branches): 
         self.tree = branches
+
+    def plot_bg(self,**pars):
+        c   = R.TCanvas("c", "c", 0, 0, 700, 500) 
+        hs  = [R.TH1F("hs"+pars["name"]+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))]
+        bg  = [R.TH1F("bg"+pars["name"]+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # only bg
+        for i in range(len(pars["cuts"])):
+            _, bg[i] = self.add_bg(hs[i],pars["cuts"][i],low=False if pars["max"]>300 else True) 
+            c.Update()
+            bg[i].Draw("HIST same")
+        c.SetLogy()
+        c.SaveAs("plots/"+pars["name"]+".pdf")
+        if "res" in pars.keys() and pars["res"]:
+            cr    = R.TCanvas("cr", "cr", 0, 0, 700, 500)
+            for b in bg: b.Scale(1/pars["scale"])
+            bg_res = self.apply_energy_res(bg, pars["nbins"],pars["min"],pars["max"],pars["name"])                                                  # energy resolution to bg
+            for i in range(len(pars["cuts"])):
+                bg_res[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
+                bg_res[i].SetLineColor(24 if "s" in pars["cuts"][i] else 20)
+                bg_res[i].SetLineStyle(0)
+                bg_res[i].SetFillColorAlpha(24 if "s" in pars["cuts"][i] else 20,0.3)
+                bg_res[i].Draw("HIST same")
+            cr.SetLogy()
+            cr.Update()
+            cr.SaveAs("plots/"+pars["name"]+"res.pdf")
 
     def apply_energy_res(self,hs,bins,min,max,label):
         f1_smear   = R.TF1("f1_smear",  "gaus");
@@ -41,13 +68,14 @@ class Plotter():
 
     def energy_spectra(self,**pars):
         c   = R.TCanvas("c", "c", 0, 0, 700, 500)
-        hs          = [R.TH1F("hs"+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))]
-        bg          = [R.TH1F("bg"+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # only bg
-        hs_bg       = [R.TH1F("hbg"+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # source and bg
+        hs          = [R.TH1F("hs"+pars["name"]+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))]
+        bg          = [R.TH1F("bg"+pars["name"]+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # only bg
+        hs_bg       = [R.TH1F("hbg"+pars["name"]+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # source and bg
         for i in range(len(pars["cuts"])):
+            print(hs[i])
             hs[i].SetLineColor(i+1)
             hs[i].SetLineWidth(2)  
-            self.tree.Draw("depTPCtot>>"+"hs"+str(i),pars["cuts"][i],"hist" if i==0 else "hist same") 
+            self.tree.Draw("depTPCtot>>"+"hs"+pars["name"]+str(i),pars["cuts"][i],"hist" if i==0 else "hist same") 
             if "bg" in pars.keys() and pars["bg"]: 
                 #needs to be normalized before adding otherwise scales don't match... 
                 hs[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
@@ -56,7 +84,6 @@ class Plotter():
                 hs_bg[i].SetLineWidth(2)  
                 hs_bg[i].Draw("HIST same") # draw source w/ bg
                 bg[i].Draw("HIST same")    # draw only bg
-
         c.SetLogy()
         c.Update()
         c.SaveAs("plots/"+pars["name"]+".pdf")
@@ -64,8 +91,8 @@ class Plotter():
             cr    = R.TCanvas("cr", "cr", 0, 0, 700, 500)
             for b in bg: b.Scale(1/pars["scale"])
             for b in hs_bg: b.Scale(1/pars["scale"])        
-            h_bg_res = self.apply_energy_res(hs_bg if "bg" in pars.keys() and pars["bg"] else hs, pars["nbins"],pars["min"],pars["max"],"h_bg_res")   # ennergy resolution to source w/ bg
-            bg_res = self.apply_energy_res(bg, pars["nbins"],pars["min"],pars["max"],"bg_res")                                                  # energy resolution to bg
+            h_bg_res = self.apply_energy_res(hs_bg if "bg" in pars.keys() and pars["bg"] else hs, pars["nbins"],pars["min"],pars["max"],pars["name"]+"res_bg")   # ennergy resolution to source w/ bg
+            bg_res = self.apply_energy_res(bg, pars["nbins"],pars["min"],pars["max"],pars["name"]+"bg")                                                  # energy resolution to bg
             for i in range(len(pars["cuts"])):
                 h_bg_res[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
                 bg_res[i].Scale(pars["scale"] if "scale" in pars.keys() else 1)
@@ -242,6 +269,7 @@ class Plotter():
 
 
     def add_bg(self,h,cut,low=False):
+        self.get_bg()
         bg_str = "lowbg" if low else "enebg"
         bg_str = bg_str[:3]+"s"+bg_str[3:] if "nclus_elec==1" in cut else bg_str 
         print("Rate of source, cut",cut,":",h.Integral(), "events/sec")
