@@ -4,9 +4,11 @@ import configparser
 import copy
 
 class Config():
-    def __init__(self):
+    def __init__(self,config_file):
         self.parser = configparser.ConfigParser(inline_comment_prefixes='#')
-        self.parser.read('config.ini')
+        #config.optionxform=str
+        self.parser.optionxform = str
+        self.parser.read(config_file)
         self.sections = self.parser.sections() 
 
     def sec(self,section):
