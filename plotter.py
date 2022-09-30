@@ -72,7 +72,6 @@ class Plotter():
         bg          = [R.TH1F("bg"+pars["name"]+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # only bg
         hs_bg       = [R.TH1F("hbg"+pars["name"]+str(i),"",pars["nbins"],pars["min"],pars["max"]) for i in range(len(pars["cuts"]))] # source and bg
         for i in range(len(pars["cuts"])):
-            print(hs[i])
             hs[i].SetLineColor(i+1)
             hs[i].SetLineWidth(2)  
             self.tree.Draw("depTPCtot>>"+"hs"+pars["name"]+str(i),pars["cuts"][i],"hist" if i==0 else "hist same") 
@@ -154,7 +153,6 @@ class Plotter():
                 fit_s1 = self.m.aux.fit_peak_with_gaus(s1,minf,maxf)
                 fit_s2 = self.m.aux.fit_peak_with_gaus(s2,minf*20,maxf*20) # remember this is an approximation
                 c.SaveAs("test"+str(i)+".pdf")
-                print("HERE", fit_s1[1])
                 xs.append(fit_s1[1]/energy)
                 ys.append(fit_s2[1]/energy)
                 xs_err.append(fit_s1[2]/energy)
@@ -267,6 +265,16 @@ class Plotter():
 
     #    return g,g2,g3
 
+    def hist(self,var,mn,mx,cuts,bins,name,scale=None):
+        c = R.TCanvas()
+        hs = [R.TH1F("h_"+str(i),"",bins,mn,mx) for i in range(len(cuts))] 
+        for i,cut in enumerate(cuts):
+            hs[i].SetLineColor(i+1)
+            self.tree.Draw(var+">>h_"+str(i),cut,"HIST same")
+            if scale != None:
+                hs[i].Scale(scale)      
+        c.Update()
+        c.SaveAs('plots/'+name+'.pdf')
 
     def add_bg(self,h,cut,low=False):
         self.get_bg()
