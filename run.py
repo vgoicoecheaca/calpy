@@ -32,6 +32,13 @@ class Run():
                      Keep the depTPCtot as the first cut for bg addition to work (modify this eventually)'''
 
         m.plotter.get_branches(self.tree_mc)                
+        # double scatters
+        m.plotter.hist("nclus",0,15,["depTPCtot>0","depTPCtot>0 && nclus_elec>0","depTPCtot>0 && nclus_nucl>0"],10,"nclus")
+        m.plotter.hist("dep_time",0,8,["depTPCtot>0","depTPCtot>0 && nclus_elec>0","depTPCtot>0 && nclus_nucl>0"],200,"dep_time")
+
+        #hist(self,var,mn,mx,cuts,bins,name,scale=None):
+        exit()
+
         #m.plotter.doke_plot(fields=[200,150,100],energy=[1117],source=["co60"],min=[1170*8 - 1000],max=[1170*8+1000])
  
         # plot bg only
