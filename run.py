@@ -16,6 +16,7 @@ class Run():
         self.cut_plots       = [self.cuts[cut] for cut in m.cuts("plots","general","str").split(",")]
         self.cut_plot_gammas = [self.cuts[cut] for cut in m.cuts("plots","gammas","str").split(",")]
         self.cut_bg          = [self.cuts[cut] for cut in m.cuts("plots","bg","str").split(",")]
+        self.cut_nclus       = [self.cuts[cut] for cut in ["edep","nr","er"]]
         if self.source_type == "g": self.cut_plots = [self.cuts[cut] for cut in ["edep","er_ss"]]
 
         # Apply cuts and store stats in dic for computing rates
@@ -33,11 +34,12 @@ class Run():
 
         m.plotter.get_branches(self.tree_mc)                
         # double scatters
-        m.plotter.hist("nclus",0,15,["depTPCtot>0","depTPCtot>0 && nclus_elec>0","depTPCtot>0 && nclus_nucl>0"],10,"nclus")
-        m.plotter.hist("dep_time",0,8,["depTPCtot>0","depTPCtot>0 && nclus_elec>0","depTPCtot>0 && nclus_nucl>0"],200,"dep_time")
+        m.plotter.hist("nclus",1,100,self.cut_nclus,100,"nclus",scale=self.scaleF)
+        m.plotter.hist("cl_t",0,4000000,self.cut_nclus,200,"time")
+        m.plotter.hist("cl_t",0,1000,self.cut_nclus,200,"time_low")
+        m.plotter.hist("cl_t",0,100,self.cut_nclus,200,"time_low_low")
 
         #hist(self,var,mn,mx,cuts,bins,name,scale=None):
-        exit()
 
         #m.plotter.doke_plot(fields=[200,150,100],energy=[1117],source=["co60"],min=[1170*8 - 1000],max=[1170*8+1000])
  

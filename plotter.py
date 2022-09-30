@@ -10,6 +10,7 @@ class Plotter():
         self.fbg  = R.TFile(self.m.config('ene','bg','str'))
         self.h_bg      = {}
         self.bg_labels = ["enebg","enesbg","lowbg","lowsbg","xybg","xysbg","xzbg","xzsbg"]
+        R.gStyle.SetOptStat(0)
 
         print("/////////// LABELS //////////")
         print("Black      --> All Deposits Source + BG")
@@ -270,9 +271,11 @@ class Plotter():
         hs = [R.TH1F("h_"+str(i),"",bins,mn,mx) for i in range(len(cuts))] 
         for i,cut in enumerate(cuts):
             hs[i].SetLineColor(i+1)
+            hs[i].GetYaxis().SetRangeUser(1, 3e6 if var=="nclus" else 1e7)
             self.tree.Draw(var+">>h_"+str(i),cut,"HIST same")
             if scale != None:
                 hs[i].Scale(scale)      
+        c.SetLogy()
         c.Update()
         c.SaveAs('plots/'+name+'.pdf')
 
