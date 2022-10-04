@@ -89,6 +89,7 @@ class Plotter():
         c.SaveAs("plots/"+pars["name"]+".pdf")
         if "res" in pars.keys() and pars["res"]:
             cr    = R.TCanvas("cr", "cr", 0, 0, 700, 500)
+            if "leg" in pars.keys() and pars["leg"]: l = R.TLegend(0.25,0.65,0.60,0.9)
             for b in bg: b.Scale(1/pars["scale"])
             for b in hs_bg: b.Scale(1/pars["scale"])        
             h_bg_res = self.apply_energy_res(hs_bg if "bg" in pars.keys() and pars["bg"] else hs, pars["nbins"],pars["min"],pars["max"],pars["name"]+"res_bg")   # ennergy resolution to source w/ bg
@@ -105,13 +106,29 @@ class Plotter():
                 bg_res[i].SetLineStyle(0)
                 bg_res[i].SetFillColorAlpha(24 if "s" in pars["cuts"][i] else 20,0.3)
                 bg_res[i].Draw("HIST same")
+                if "leg" in pars.keys() and pars["leg"]: l.AddEntry(h_bg_res[i],pars["cuts"][i],"l")
+            if "leg" in pars.keys() and pars["leg"]: 
+                l.SetBorderSize(0)
+                l.Draw("same")
             cr.SetLogy()
             cr.Update()
             cr.SaveAs("plots/"+pars["name"]+"_res.pdf")
+    
+    def hist2d(self,**pars):
+        c = R.TCanvas()  
+        R.gStyle.SetPadRightMargin(0.16)
+        h = R.TH2F("h","",pars["bins"],pars["xmin"],pars["xmax"],pars["bins"],pars["ymin"],pars["ymax"])
+        self.tree.Draw(pars["var"]+">>h",pars["cut"],"COLZ")
+        if "scale" in pars.keys() and pars["scale"] != None:
+            hs[i].Scale(scale)      
+        c.SetLogz()
+        c.Update()
+        c.SaveAs('plots/'+pars["name"]+'.pdf')
 
     def spatial_distribution(self,**pars):   
+        ### change bg scaling to variable from add_bg function
         cs = R.TCanvas()
-        #cs.SetLogz()
+        cs.SetLogz()
         h  =  R.TH2F("h","",pars["nbins"],pars["min"],pars["max"],pars["nbins"],pars["min"],pars["max"]) 
         var  = "cl_y:cl_x" if pars["var"] == "xy" else "cl_z:cl_x" 
         bg_str = pars["var"]+"sbg" if "nclus" in pars["cuts"] else pars["var"]+"bg"
@@ -121,7 +138,7 @@ class Plotter():
         if pars["var"] =="xz":
             h.GetYaxis().SetTitle("Z [cm]")
             h.GetYaxis().SetRangeUser(-185,185)
-        self.tree.Draw(var+">>h",pars["cuts"],"COLZ")
+        self.tree.Draw(var+">>h",pars["cuts"][0],"COLZ")
         R.gStyle.SetPadRightMargin(0.16)
         h.Scale(50/h.Integral() if pars["s"] == "n" else pars["scale"])                                            #cheap fix, come back to this 
         if "bg" in pars.keys() and pars["bg"]:
@@ -129,6 +146,7 @@ class Plotter():
             integral = self.h_bg[bg_str].Integral()
             self.h_bg[bg_str].Scale( (43/integral) if "s" in bg_str else 84/integral)                                                   # there was a bug, total bg rate should be 84Hz for all deposits and 43 for single scatters, roughly
             h.Add(self.h_bg[bg_str])
+        cs.SetRightMargin(0.13);
         cs.Update()
         cs.SaveAs("plots/"+pars["title"]+".pdf")
 
@@ -278,6 +296,38 @@ class Plotter():
         c.SetLogy()
         c.Update()
         c.SaveAs('plots/'+name+'.pdf')
+
+    def delta_t_r(self,**pars):
+        c = R.TCanvas()
+        hd = R.TH2F("hd","",pars["tbins"],pars["tmin"],pars["tmax"],pars["rbins"],pars["rmin"],pars["rmax"])
+        ht = R.TH2F("ht","",pars["tbins"],pars["tmin"],pars["tmax"],pars["rbins"],pars["rmin"],pars["rmax"])
+        up_to_nclus = 10                    # number of nclus +1 to include
+        for i in range(1,up_to_nclus):
+            s = [l for l in range(i)] 
+            pairs = [((l), (l + 1) % len(s)) for l in range(len(s))]
+            for pair in pairs[:-1]:
+                low,up = str(pair[0]),str(pair[1])
+                print(low,up) 
+                cl_stri = "sqrt(cl_x["+up+"]*cl_x["+up+"]+cl_y["+up+"]*cl_y["+up+"]+cl_z["+up+"]*cl_z["+up+"])"
+                cl_str0 = "sqrt(cl_x["+low+"]*cl_x["+low+"]+cl_y["+low+"]*cl_y["+low+"]+cl_z["+low+"]*cl_z["+low+"])"
+                self.m.branches.add_branch("cl_r_"+up,cl_stri)
+                self.m.branches.add_branch("cl_r_"+low,cl_str0)
+                self.tree.Draw("cl_r_"+up+"-cl_r_"+low+":cl_t["+up+"]-cl_t["+low+"]>>hd","depTPCtot>0 && nclus=="+str(i+1)+" && nclus_nucl=="+str(i+1),"COLZ")
+                c.SetLogz()
+                ht.Add(hd)
+                c.SetRightMargin(0.13);
+                hd.Reset()
+        cn = R.TCanvas() 
+        cn.SetLogz()
+        cn.SetRightMargin(0.13);
+        ht.GetXaxis().SetTitle(r"\Delta T [ns]")
+        ht.GetYaxis().SetTitle(r"\Delta R [cm]")
+        ht.GetZaxis().SetTitle("Rate [s^-1]")
+        ht.Draw("COLZ") 
+        ht.Scale(pars["scale"])
+        print("Total integral rate [1/s] of all cls for neutrons ",ht.Integral())
+        cn.Update()
+        cn.SaveAs("plots/delta_t_r.pdf")
 
     def add_bg(self,h,cut,low=False):
         self.get_bg()
