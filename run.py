@@ -20,6 +20,8 @@ class Run():
         self.cut_nclus       = [self.cuts[cut] for cut in m.cuts("plots","cl","str").split(",")] 
         self.cut_ncl         =[self.cuts[cut] for cut in m.cuts("plots","ncl","str").split(",")] 
         self.cut_nr_ds       = [self.cuts[cut] for cut in ["nr_ds"]] 
+        self.cut_nr          = [self.cuts[cut] for cut in ["nr"]] 
+
         if self.source_type == "g": self.cut_plots = [self.cuts[cut] for cut in m.cuts("plots","er","str").split(",")]
 
         # Apply cuts and store stats in dic for computing rates
@@ -38,34 +40,30 @@ class Run():
         m.plotter.get_branches(self.tree_mc)                
 
         # clusters
-        m.plotter.hist("nclus",1,100,self.cut_nclus,100,"nclus",scale=self.scaleF)
-
-        # looking at timing
-        m.plotter.hist("cl_t",0,5e6,self.cut_nclus,200,"time")
-        m.plotter.hist("cl_t",0,5e3,self.cut_nclus,200,"time_low")
-        m.plotter.hist("cl_t",0,50,self.cut_nclus,200,"time_low_low")
-        m.plotter.hist("cl_t[1]-cl_t[0]",0,50,["depTPCtot>0 && nclus==2 && nclus_nucl==2"],100,"delta_t_ns")
-        m.plotter.hist2d(var="cl_t:depTPCtot",cut="nclus_nucl>0",bins=100,xmin=0,xmax=1000,ymin=0,ymax=5e6,name="ene_cltime_nucl") 
-        m.plotter.hist2d(var="cl_t:depTPCtot",cut="nclus_elec>0",bins=200,xmin=0,xmax=12000,ymin=0,ymax=5e6,name="ene_cltime_elec") 
-        
+        #m.plotter.hist("nclus",1,100,self.cut_nclus,100,"nclus",scale=self.scaleF)
+        #m.plotter.hist("cl_t",0,5e6,self.cut_nclus,200,"time")
+        #m.plotter.hist("cl_t",0,5e3,self.cut_nclus,200,"time_low")
+        m.plotter.hist("cl_t",0,50,self.cut_nclus,200,"time_low_low",scale=self.scaleF)
+        #m.plotter.hist2d(var="cl_t:depTPCtot",cut="nclus_nucl>0",bins=100,xmin=0,xmax=1000,ymin=0,ymax=5e6,name="ene_cltime_nucl") 
+        #m.plotter.hist2d(var="cl_t:depTPCtot",cut="nclus_elec>0",bins=200,xmin=0,xmax=12000,ymin=0,ymax=5e6,name="ene_cltime_elec") 
         # for nucl_nclus,
-        m.plotter.delta_t_r(tbins=100,tmin=0,tmax=50,rbins=100,rmin=-50,rmax=50,scale=self.scaleF)
-
+        m.plotter.delta_t_r(tbins=100,tmin=5,tmax=1000,rbins=100,rmin=-50,rmax=50,scale=self.scaleF)
         # energy variable, FIX
         #m.plotter.doke_plot(fields=[200,150,100],energy=[1117],source=["co60"],min=[1170*8 - 1000],max=[1170*8+1000])
  
         # plot bg only
         #m.plotter.plot_bg(name="test_bg",nbins=200,cuts=self.cut_bg,min=0,max=3000,res=True,scale=self.scaleF)
 
+
         #spectrum before bg
         #m.plotter.energy_spectra(nbins=200,min=0,max=12000 if self.source_type=="n" else 3000,res=True,scale=self.scaleF,name="ene",   cuts=self.cut_plots)
         #m.plotter.energy_spectra(nbins=100,min=0,max=200,                                     res=True,scale=self.scaleF,name="lowene",cuts=self.cut_plots,range=[1,2e-4])
 
         if self.source_type == "n":
-            m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas,leg=False)
-            m.plotter.energy_spectra(nbins=100,min=0,max=200,res=True,scale=self.scaleF,name="neutrons",cuts=self.cut_neutrons,range=[4e-2,1e-4],leg=True)
-            m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,title="xy_nr_ds",scale=self.scaleF, cuts=self.cut_nr_ds) 
-            m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas,leg=True)
+            #m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas,leg=False)
+            #m.plotter.energy_spectra(nbins=100,min=0,max=200,res=True,scale=self.scaleF,name="neutrons",cuts=self.cut_neutrons,range=[4e-2,1e-4],leg=True)
+            m.plotter.spatial_distribution(var="xy",nbins=100,min=-200,max=200,s = self.source_type,title="xy_nr",scale=self.scaleF, cuts=self.cut_nr) 
+            #m.plotter.energy_spectra(nbins=200,min=0,max=12000,res=True,scale=self.scaleF,name="gammas",cuts=self.cut_plot_gammas,leg=True)
 
         # spectrum after bg 
         #m.plotter.energy_spectra(nbins=200,min=0,max=3000,bg=True,res=True,scale=self.scaleF,name="enebg",   cuts=self.cut_bg,range=[10,2e-4])

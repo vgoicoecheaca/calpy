@@ -289,7 +289,8 @@ class Plotter():
         hs = [R.TH1F("h_"+str(i),"",bins,mn,mx) for i in range(len(cuts))] 
         for i,cut in enumerate(cuts):
             hs[i].SetLineColor(i+1)
-            hs[i].GetYaxis().SetRangeUser(1, 3e6 if var=="nclus" else 1e7)
+            #hs[i].GetYaxis().SetRangeUser(1e-4, 1e2 if var=="nclus" else 1e7)
+            hs[i].GetYaxis().SetRangeUser(1e-4, 1e2)
             self.tree.Draw(var+">>h_"+str(i),cut,"HIST same")
             if scale != None:
                 hs[i].Scale(scale)      
@@ -312,7 +313,8 @@ class Plotter():
                 cl_str0 = "sqrt(cl_x["+low+"]*cl_x["+low+"]+cl_y["+low+"]*cl_y["+low+"]+cl_z["+low+"]*cl_z["+low+"])"
                 self.m.branches.add_branch("cl_r_"+up,cl_stri)
                 self.m.branches.add_branch("cl_r_"+low,cl_str0)
-                self.tree.Draw("cl_r_"+up+"-cl_r_"+low+":cl_t["+up+"]-cl_t["+low+"]>>hd","depTPCtot>0 && nclus=="+str(i+1)+" && nclus_nucl=="+str(i+1),"COLZ")
+                self.tree.Draw("cl_r_"+up+"-cl_r_"+low+":cl_t>>hd","depTPCtot>0 && nclus=="+str(i+1)+" && nclus_nucl=="+str(i+1),"COLZ")
+                #self.tree.Draw("cl_r_"+up+"-cl_r_"+low+":cl_t["+up+"]-cl_t["+low+"]>>hd","depTPCtot>0 && nclus=="+str(i+1)+" && nclus_nucl=="+str(i+1),"COLZ")
                 c.SetLogz()
                 ht.Add(hd)
                 c.SetRightMargin(0.13);
